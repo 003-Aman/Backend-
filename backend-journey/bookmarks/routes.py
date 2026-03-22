@@ -4,16 +4,34 @@ from middleware import get_logged_in_user
 
 bookmarks_bp = Blueprint("bookmarks", __name__)
 
+
+def bookmark_to_dict(b):
+    return {
+        "id": b.id,
+        "title": b.title,
+        "url": b.url,
+        "tags": b.tags.split(",") if b.tags else []
+    }
+
+
 @bookmarks_bp.route("/bookmarks", methods=["GET"])
 def get_bookmarks():
     user = get_logged_in_user()
     if not user:
         return jsonify({"error": "You must be logged in"}), 401
-    bookmarks = Bookmark.query.filter_by(user_id=user["user_id"]).all()
+    tag = request.args.get("tag", "")
+    if tag:
+        bookmarks = Bookmark.query.filter(
+            Bookmark.user_id == user["user_id"],
+            Bookmark.tags.contains(tag)
+        ).all()
+    else:
+        bookmarks = Bookmark.query.filter_by(user_id=user["user_id"]).all()
     result = []
     for b in bookmarks:
-        result.append({"id": b.id, "title": b.title, "url": b.url})
+        result.append(bookmark_to_dict(b))
     return jsonify(result)
+
 
 @bookmarks_bp.route("/bookmarks/search", methods=["GET"])
 def search_bookmarks():
@@ -29,8 +47,9 @@ def search_bookmarks():
     ).all()
     output = []
     for b in results:
-        output.append({"id": b.id, "title": b.title, "url": b.url})
+        output.append(bookmark_to_dict(b))
     return jsonify(output)
+
 
 @bookmarks_bp.route("/bookmarks", methods=["POST"])
 def add_bookmark():
@@ -44,10 +63,17 @@ def add_bookmark():
         return jsonify({"error": "Both title and url are required"}), 400
     if len(data["title"]) == 0 or len(data["url"]) == 0:
         return jsonify({"error": "Title and url cannot be empty"}), 400
-    bookmark = Bookmark(title=data["title"], url=data["url"], user_id=user["user_id"])
+    tags = ",".join(data.get("tags", []))
+    bookmark = Bookmark(
+        title=data["title"],
+        url=data["url"],
+        user_id=user["user_id"],
+        tags=tags
+    )
     db.session.add(bookmark)
     db.session.commit()
-    return jsonify({"id": bookmark.id, "title": bookmark.title, "url": bookmark.url}), 201
+    return jsonify(bookmark_to_dict(bookmark)), 201
+
 
 @bookmarks_bp.route("/bookmarks/<int:bookmark_id>", methods=["PUT"])
 def update_bookmark(bookmark_id):
@@ -64,8 +90,11 @@ def update_bookmark(bookmark_id):
         return jsonify({"error": "No data provided"}), 400
     bookmark.title = data.get("title", bookmark.title)
     bookmark.url = data.get("url", bookmark.url)
+    if "tags" in data:
+        bookmark.tags = ",".join(data["tags"])
     db.session.commit()
-    return jsonify({"id": bookmark.id, "title": bookmark.title, "url": bookmark.url})
+    return jsonify(bookmark_to_dict(bookmark))
+
 
 @bookmarks_bp.route("/bookmarks/<int:bookmark_id>", methods=["DELETE"])
 def delete_bookmark(bookmark_id):

@@ -12,3 +12,4 @@ class Bookmark(db.Model):
     title = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(200), nullable=False)
     user_id = db.Column(db.Integer, nullable=False)
+    tags = db.Column(db.String(200), default="")
