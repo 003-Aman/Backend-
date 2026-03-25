@@ -52,6 +52,7 @@ with app.app_context():
 
 
 # --- START ---
-app.run(debug=True, port=8000)
+if __name__ == "__main__":
+    app.run(debug=True, port=8000)
 # Turn on the server on port 8000
 # (port 5000 was taken by AirPlay on your Mac)
