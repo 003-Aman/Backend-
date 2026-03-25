@@ -2,7 +2,7 @@
 # It doesn't handle any requests itself.
 # It just creates the server, plugs things in, and starts listening.
 
-from flask import Flask
+from flask import Flask,jsonify
 
 from models import db
 # The database tool from models.py
@@ -49,10 +49,23 @@ with app.app_context():
     db.create_all()
 # Look at all models (User, Bookmark)
 # Create their tables in the database if they don't exist yet
+@app.route("/")
+def home():
+    return jsonify({
+        "message": "Bookmarks API is running",
+        "endpoints": {
+            "POST /signup": "Create an account",
+            "POST /login": "Log in and get a token",
+            "GET /bookmarks": "Get your bookmarks",
+            "POST /bookmarks": "Create a bookmark",
+            "PUT /bookmarks/:id": "Update a bookmark",
+            "DELETE /bookmarks/:id": "Delete a bookmark"
+        }
+    })
 
 
 # --- START ---
-if __name__ == "__main__":
+if __name__ == "__main__":#only run the development server if im running the file directly
     app.run(debug=True, port=8000)
 # Turn on the server on port 8000
 # (port 5000 was taken by AirPlay on your Mac)
